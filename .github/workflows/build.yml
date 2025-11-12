@@ -77,7 +77,7 @@ jobs:
         run: |
           .venv\Scripts\activate
           # Note: The icon should be a .ico file on Windows
-          pyinstaller --onefile --windowed --add-data="arduino-cli.exe" --name "HEX_Flasher" ArduinoFlasher1.0.py
+          pyinstaller --onefile --windowed --add-data="arduino-cli.exe:." --name "HEX_Flasher" ArduinoFlasher1.0.py
 
 
       # 7. Create or Update the "latest" Release
