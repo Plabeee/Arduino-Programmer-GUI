@@ -93,7 +93,7 @@ jobs:
             --latest `
             --prerelease=false `
             --draft=false `
-            ./ESP_Flasher.zip \`
+            ./dist/HEX_Flasher.zip \`
           || `
           ( `
             echo "Release 'latest' already exists. Re-creating..." ; `
@@ -106,5 +106,5 @@ jobs:
               --latest `
               --prerelease=false `
               --draft=false `
-              ./ESP_Flasher.zip \`
+              ./dist/HEX_Flasher.zip \`
           )
