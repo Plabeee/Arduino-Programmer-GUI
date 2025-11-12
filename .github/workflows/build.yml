@@ -88,7 +88,7 @@ jobs:
         run: |
           # Try to create the release. This will tag the current commit as "latest"
           gh release create latest
-            --title "Latest Windows Build (main)"
+            --title "Latest Windows Build"
             --notes "Automatic build from the main branch."
             --latest
             --prerelease=false
@@ -101,7 +101,7 @@ jobs:
             gh release delete latest -y ;
             # Re-create the release, which will tag the current commit as "latest"
             gh release create latest
-              --title "Latest Windows Build (main)"
+              --title "Latest Windows Build"
               --notes "Automatic build from the main branch."
               --latest
               --prerelease=false
