@@ -20,7 +20,36 @@ from PyQt5.QtGui import QIcon
 node_ID_string = '#define NODE_ID'
 program_path = '/'
 
-compiler = 'arduino-cli'
+def get_cli_path():
+    """ Get absolute path to arduino-cli, works for dev and for PyInstaller """
+    
+    # Determine executable name based on OS
+    if sys.platform.startswith('win'):
+        cli_name = 'arduino-cli.exe'
+    else:
+        cli_name = 'arduino-cli' # Assumes Linux/macOS executable
+
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        # This is the path to the bundled executable
+        base_path = sys._MEIPASS
+        return os.path.join(base_path, cli_name)
+    except Exception:
+        # Not running in a PyInstaller bundle (e.g., running as a script)
+        # Check if 'arduino-cli' is in the same folder as the script
+        script_path = os.path.abspath(".")
+        local_cli_path = os.path.join(script_path, cli_name)
+        if os.path.isfile(local_cli_path):
+            print(f"Using local CLI: {local_cli_path}")
+            return local_cli_path
+        
+        # Fallback to assuming 'arduino-cli' is in the system's PATH for development
+        print("Using system PATH for arduino-cli")
+        return 'arduino-cli'
+
+# Get the path to the arduino-cli executable
+compiler = get_cli_path()
+
 flag1_compile = 'compile'
 flag2_boardname1 = '-b'
 flag3_boardname2 = 'arduino:avr:uno'
@@ -28,6 +57,9 @@ flag5_verbose = '-v'
 
 flag1_upload = 'upload'
 flag2_portname1 = '-p'
+# Add new flag for hex input
+flag_input_file = '--input-file'
+
 
 #testComPort = 'COM6'
 
@@ -78,11 +110,12 @@ class Ui_MainWindow(QWidget):
         self.label_4.setFont(font)
         self.label_4.setObjectName("label_4")
         self.verticalLayout.addWidget(self.label_4)
-        self.pushButton_installTool = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_installTool.setObjectName("pushButton_installTool")
-        self.verticalLayout.addWidget(self.pushButton_installTool)
-        spacerItem = QtWidgets.QSpacerItem(20, 80, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        
+        # Removed Install Tool button and spacer
+        
+        spacerItem = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding) # Smaller spacer
         self.verticalLayout.addItem(spacerItem)
+
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
@@ -149,8 +182,8 @@ class Ui_MainWindow(QWidget):
         
         self.toolButton_selectFile.clicked.connect(self.openFileNameDialog)
 
-        self.pushButton_installTool.clicked.connect(self.installTool)
-
+        # Removed installTool button click connect
+        
         self.label_4.setFont(font)
         self.label_4.setObjectName("label_4")
 
@@ -176,38 +209,13 @@ class Ui_MainWindow(QWidget):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-    # Install arduino-cli
-    def installTool(self):
-        print("Checking if Tool is installed")
-        self.updateLabel("TO PRINT NOW")
-        self.textEdit.setText("Checking if Tool is installed")
-
-        try: 
-            p = Popen(["ipconfig"], stdout=PIPE, bufsize=1)
-            with p.stdout:
-                for line in iter(p.stdout.readline, b''):
-                    print(line)
-                    self.textEdit.setText(line)
-            p.wait() # wait for the subprocess to exit
-            
-            
-        except: 
-            print("Not installed. Installing now")
-
-            try:
-                result = subprocess.run(['curl', '-fsSL', 'https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh', '|', 'sh'])
-                #result = subprocess.run(['avrdude'], stdout=subprocess.PIPE)
-                resultstring = result.stdout.decode('utf-8')
-                self.textEdit.setText(resultstring)
-                print(resultstring)
-            except:
-                print("Except")
-
+    # Removed installTool(self) method
 
     #Browse button    
     def openFileNameDialog(self):
         print("Opening Window")
-        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Single File', QtCore.QDir.rootPath() , '*.ino') #works
+        # CHANGED: Updated file filter to include .hex files
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Select Firmware File', QtCore.QDir.rootPath() , 'Firmware Files (*.ino *.hex);;All Files (*)') #works
         if fileName:
             print(fileName)
             self.label_fileChosen.setText(fileName)
@@ -218,6 +226,12 @@ class Ui_MainWindow(QWidget):
 
     # If change ID, write ID in file
     def valueIDchange(self):
+        # ADDED: Check if an .ino file is selected. ID writing only works for .ino projects.
+        if not program_path.endswith('.ino'):
+            print("ID writing skipped: Not an .ino file.")
+            self.textEdit.setText("ID writing is only supported for .ino files.")
+            return
+
         print("current value:"+str(self.spinBox_ID.value()))   
 
         print("Program path: ", program_path)
@@ -235,7 +249,13 @@ class Ui_MainWindow(QWidget):
             self.textEdit.setText("File not selected / not present. Will not write ID")
             return
         
-        files = os.listdir(cwd)  # Get all the files in that directory
+        # Check if cwd was defined
+        try:
+            files = os.listdir(cwd)  # Get all the files in that directory
+        except NameError:
+            print("Could not determine directory from program path.")
+            self.textEdit.setText("Could not determine directory from program path.")
+            return
 
         print("Files in %r: %s" % (cwd, files))
         #file1 = open('Arduino-Flasher-Project/Firmware_V4/_ID.h', 'w')
@@ -255,6 +275,9 @@ class Ui_MainWindow(QWidget):
     def refreshComPortPressed(self):
         listReturned = serial_ports()   
 
+        # Clear existing items before adding new ones
+        self.comboBox_COMPORTS.clear()
+
         if(len(listReturned) == 0):
             print("No COM port found")
             self.textEdit.setText("No COM port foud!")
@@ -265,49 +288,125 @@ class Ui_MainWindow(QWidget):
                 print(comPort+1)
                 self.comboBox_COMPORTS.addItem(listReturned[comPort])
                 
-                #If the item is already on the list, delete it
-                if self.comboBox_COMPORTS.count() > len(listReturned):
-                    self.comboBox_COMPORTS.removeItem(len(listReturned))
+            # No need to remove items, we cleared it first
 
             
     #Start compilation and flashing process
     def FlashButtonPressed(self):
         print("FLASH button pressed")
-
-        self.refreshComPortPressed()
+        
+        # Re-check ports, but don't clear list if user selected one
+        listReturned = serial_ports()
         if(len(listReturned) == 0):
             print("No COM port found")
             self.textEdit.setText("No COM port foud!")
+            self.comboBox_COMPORTS.clear() # Clear list if no ports found
             return
+        
+        # Refresh the list content without losing selection if possible
+        current_selection = self.comboBox_COMPORTS.currentText()
+        self.comboBox_COMPORTS.clear()
+        self.comboBox_COMPORTS.addItems(listReturned)
+        if current_selection in listReturned:
+            self.comboBox_COMPORTS.setCurrentText(current_selection)
+        
+        if not self.comboBox_COMPORTS.currentText():
+            self.textEdit.setText("Please select a COM port.")
+            return
+
 
         if program_path == '/':
             print("Select .ino file to flash first")
             self.textEdit.setText("Select .ino file to flash first")
             return
+        
+        # Prepare to hide console window on Windows
+        startupinfo = None
+        if sys.platform == 'win32':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
             
-        self.textEdit.setText("Compiling...")
+        
         #compiling process
-        subprocess.call([compiler, flag1_compile, flag2_boardname1, flag3_boardname2, program_path, flag5_verbose])
-        
-        self.textEdit.setText("Compiling done. Flashing...")
-        #flashign process
-        subprocess.call([compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), program_path, flag5_verbose])
-        
-        self.textEdit.setText("Flashing done!")
+        # Using 'compiler' variable which now holds the full path
+        try:
+            # --- CHANGED: Added logic to check file type ---
+            if program_path.endswith('.ino'):
+                # --- .INO FILE: Compile then Upload ---
+                self.textEdit.setText("Compiling .ino file...")
+                QApplication.processEvents() # Allow GUI to update
+
+                print(f"Running command: {[compiler, flag1_compile, flag2_boardname1, flag3_boardname2, program_path, flag5_verbose]}")
+                
+                # Using subprocess.run to capture output
+                compile_result = subprocess.run([compiler, flag1_compile, flag2_boardname1, flag3_boardname2, program_path, flag5_verbose], 
+                                                capture_output=True, text=True, encoding='utf-8', startupinfo=startupinfo)
+                
+                self.textEdit.append("--- Compile Output ---")
+                self.textEdit.append(compile_result.stdout)
+                self.textEdit.append(compile_result.stderr)
+                
+                if compile_result.returncode != 0:
+                    self.textEdit.append("--- COMPILE FAILED! ---")
+                    return
+
+                self.textEdit.append("Compiling done. Flashing...")
+                QApplication.processEvents() # Allow GUI to update
+
+                #flashign process
+                print(f"Running command: {[compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), program_path, flag5_verbose]}")
+                
+                upload_result = subprocess.run([compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), program_path, flag5_verbose],
+                                               capture_output=True, text=True, encoding='utf-8', startupinfo=startupinfo)
+
+                self.textEdit.append("--- Upload Output ---")
+                self.textEdit.append(upload_result.stdout)
+                self.textEdit.append(upload_result.stderr)
+
+                if upload_result.returncode == 0:
+                    self.textEdit.append("--- Flashing done! ---")
+                else:
+                    self.textEdit.append("--- UPLOAD FAILED! ---")
+
+            elif program_path.endswith('.hex'):
+                # --- .HEX FILE: Upload Only ---
+                self.textEdit.setText("Uploading .hex file...")
+                QApplication.processEvents() # Allow GUI to update
+
+                print(f"Running command: {[compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), flag_input_file, program_path, flag5_verbose]}")
+                
+                upload_result = subprocess.run([compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), flag_input_file, program_path, flag5_verbose],
+                                               capture_output=True, text=True, encoding='utf-8', startupinfo=startupinfo)
+
+                self.textEdit.append("--- Upload Output ---")
+                self.textEdit.append(upload_result.stdout)
+                self.textEdit.append(upload_result.stderr)
+
+                if upload_result.returncode == 0:
+                    self.textEdit.append("--- Flashing done! ---")
+                else:
+                    self.textEdit.append("--- UPLOAD FAILED! ---")
+
+        except FileNotFoundError:
+            self.textEdit.setText(f"Error: '{compiler}' not found.\nMake sure 'arduino-cli.exe' is bundled correctly.")
+        except Exception as e:
+            self.textEdit.setText(f"An error occurred: {str(e)}")
 
 
     # PyQT5 requirement
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Arduino Flasher"))
         self.pushButton_Flash.setText(_translate("MainWindow", "FLASH!"))
         self.label.setText(_translate("MainWindow", "COM port"))
         self.toolButton_selectFile.setText(_translate("MainWindow", "..."))
-        self.label_2.setText(_translate("MainWindow", "Select HEX file"))
+        # CHANGED: Updated label text
+        self.label_2.setText(_translate("MainWindow", "Select .ino or .hex file"))
         self.label_3.setText(_translate("MainWindow", "Target ID (1-999)"))
         self.label_4.setText(_translate("MainWindow", "ATMEGA328p ARDUINO COMPILER AND FLASHER"))
         self.label_5.setText(_translate("MainWindow", "Debug output:"))
-        self.pushButton_installTool.setText(_translate("MainWindow", "Install arduino-cli Tool"))
+        # Removed installTool button text
         self.pushButton_RefreshCOM.setText(_translate("MainWindow", "Refresh COM ports"))
 
     
