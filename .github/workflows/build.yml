@@ -70,9 +70,7 @@ jobs:
           # pip install -r requirements.txt
           # Install PyInstaller
           pip install pyinstaller PyQt5 pyserial Pillow
-      
-      - 
-          
+
       - name: 🔨 Build with PyInstaller
         # Adjust the command and options as needed:
         # The result will be an .exe file in the 'dist' folder when using --onefile
