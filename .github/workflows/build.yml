@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           # Construct the download URL
-          $url = "https://github.com/arduino/arduino-cli/releases/download/${{ env.ARDUINO_CLI_VERSION }}/arduino-cli_${{ env.ARDUINO_CLI_VERSION }}_Windows_64bit.zip"
+          $url = "https://github.com/arduino/arduino-cli/releases/download/v${{ env.ARDUINO_CLI_VERSION }}/arduino-cli_${{ env.ARDUINO_CLI_VERSION }}_Windows_64bit.zip"
           $outputZip = "arduino-cli.zip"
           
           # Download the file
