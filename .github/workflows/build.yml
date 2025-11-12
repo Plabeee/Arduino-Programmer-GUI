@@ -87,24 +87,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Try to create the release. This will tag the current commit as "latest"
-          gh release create latest `
-            --title "Latest Windows Build (main)" `
-            --notes "Automatic build from the main branch." `
-            --latest `
-            --prerelease=false `
-            --draft=false `
-            ./dist/HEX_Flasher.exe \`
-          || `
-          ( `
-            echo "Release 'latest' already exists. Re-creating..." ; `
+          gh release create latest
+            --title "Latest Windows Build (main)"
+            --notes "Automatic build from the main branch."
+            --latest
+            --prerelease=false
+            --draft=false
+            ./dist/HEX_Flasher.exe \
+          ||
+          (
+            echo "Release 'latest' already exists. Re-creating..." ;
             # Delete the existing release. This also deletes the "latest" tag.
-            gh release delete latest -y ; `
+            gh release delete latest -y ;
             # Re-create the release, which will tag the current commit as "latest"
-            gh release create latest `
-              --title "Latest Windows Build (main)" `
-              --notes "Automatic build from the main branch." `
-              --latest `
-              --prerelease=false `
-              --draft=false `
-              ./dist/HEX_Flasher.exe \`
+            gh release create latest
+              --title "Latest Windows Build (main)"
+              --notes "Automatic build from the main branch."
+              --latest
+              --prerelease=false
+              --draft=false
+              ./dist/HEX_Flasher.exe \
           )
