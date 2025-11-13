@@ -90,7 +90,7 @@ jobs:
           # Try to create the release.
           # All flags are continued with '\' to make one long command
           gh release create latest \
-            --title "Latest Windows Build" \
+            --title "Latest Windows Build (main)" \
             --notes "Automatic build from the main branch." \
             --latest \
             --prerelease=false \
@@ -106,7 +106,7 @@ jobs:
             echo "Old release deleted. Re-creating..." ;
             # Re-create the release
             gh release create latest \
-              --title "Latest Windows Build" \
+              --title "Latest Windows Build (main)" \
               --notes "Automatic build from the main branch." \
         _       --latest \
               --prerelease=false \
