@@ -82,29 +82,35 @@ jobs:
 
       # 7. Create or Update the "latest" Release
       - name: Create or Update "latest" Release
-        env:
-          # The GITHUB_TOKEN is automatically provided by Actions
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Try to create the release. This will tag the current commit as "latest"
-          gh release create latest
-            --title "Latest Windows Build"
-            --notes "Automatic build from the main branch."
-            --latest
-            --prerelease=false
-            --draft=false
-            ./dist/HEX_Flasher.exe \
-          ||
-          (
-            echo "Release 'latest' already exists. Re-creating..." ;
-            # Delete the existing release. This also deletes the "latest" tag.
-            gh release delete latest -y ;
-            # Re-create the release, which will tag the current commit as "latest"
-            gh release create latest
-              --title "Latest Windows Build"
-              --notes "Automatic build from the main branch."
-              --latest
-              --prerelease=false
-              --draft=false
-              ./dist/HEX_Flasher.exe \
-          )
+        env:
+          # The GITHUB_TOKEN is automatically provided by Actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash  # <-- FIX 1: Explicitly use bash shell for '||' logic
+        run: |
+          # Try to create the release.
+          # All flags are continued with '\' to make one long command
+          gh release create latest \
+            --title "Latest Windows Build" \
+            --notes "Automatic build from the main branch." \
+            --latest \
+            --prerelease=false \
+            --draft=false \
+            ./dist/HEX_Flasher.exe
+          # FIX 2: The '||' operator is on its own line.
+          # It runs the (...) block only if the 'gh release create' command above fails.
+          ||
+          (
+            echo "Release 'latest' already exists. Re-creating..." ;
+            # Delete the existing release
+            gh release delete latest -y ;
+            echo "Old release deleted. Re-creating..." ;
+            # Re-create the release
+            gh release create latest \
+              --title "Latest Windows Build" \
+              --notes "Automatic build from the main branch." \
+        _       --latest \
+              --prerelease=false \
+              --draft=false \
+              ./dist/HEX_Flasher.exe
+            # FIX 3: No '\' at the end of the last command in the block
+    _   )
