@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: ⬇️ Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: 📂 Move Source Files to Root
         # This step moves the contents of the 'Source' directory
         # to the root of the workspace (where the workflow runs).
@@ -32,28 +32,28 @@ jobs:
           # You might want to remove the now-empty Source folder
           Remove-Item -Path .\Source -Recurse -Force
           # --- This is the implementation of Step 2 from your README ---
-          
+
       - name: Download and Install arduino-cli (Step 2 & 3)
         shell: pwsh
         run: |
           # Construct the download URL
           $url = "https://github.com/arduino/arduino-cli/releases/download/v${{ env.ARDUINO_CLI_VERSION }}/arduino-cli_${{ env.ARDUINO_CLI_VERSION }}_Windows_64bit.zip"
           $outputZip = "arduino-cli.zip"
-          
+
           # Download the file
           Write-Host "Downloading arduino-cli from $url"
           Invoke-WebRequest -Uri $url -OutFile $outputZip
-          
+
           # Extract the zip file
           Write-Host "Extracting $outputZip"
           Expand-Archive -Path $outputZip -DestinationPath .
-          
+
           # Clean up the downloaded zip
           Write-Host "Cleaning up $outputZip"
           Remove-Item -Path $outputZip
-          
+
           Write-Host "arduino-cli.exe is ready in the Source directory."
-          
+
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
@@ -64,7 +64,7 @@ jobs:
         run: |
           python -m venv .venv
           # Activation on Windows uses ".\.venv\Scripts\activate"
-          .venv\Scripts\activate
+          .\.venv\Scripts\activate
           python -m pip install --upgrade pip
           # Replace requirements.txt with your actual requirements file
           # pip install -r requirements.txt
@@ -75,42 +75,38 @@ jobs:
         # Adjust the command and options as needed:
         # The result will be an .exe file in the 'dist' folder when using --onefile
         run: |
-          .venv\Scripts\activate
+          .\.venv\Scripts\activate
           # Note: The icon should be a .ico file on Windows
           pyinstaller --onefile --windowed --add-data="arduino-cli.exe:." --name "HEX_Flasher" ArduinoFlasher_1.0.py
 
-
       # 7. Create or Update the "latest" Release
       - name: Create or Update "latest" Release
-        env:
-          # The GITHUB_TOKEN is automatically provided by Actions
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash  # <-- FIX 1: Explicitly use bash shell for '||' logic
-        run: |
-          # Try to create the release.
-          # All flags are continued with '\' to make one long command
-          gh release create latest \
-            --title "Latest Windows Build (main)" \
-            --notes "Automatic build from the main branch." \
-            --latest \
-            --prerelease=false \
-            --draft=false \
-            ./dist/HEX_Flasher.exe
-          # FIX 2: The '||' operator is on its own line.
-          # It runs the (...) block only if the 'gh release create' command above fails.
-          ||
-          (
-            echo "Release 'latest' already exists. Re-creating..." ;
-            # Delete the existing release
-            gh release delete latest -y ;
-            echo "Old release deleted. Re-creating..." ;
-            # Re-create the release
-            gh release create latest \
-              --title "Latest Windows Build (main)" \
-              --notes "Automatic build from the main branch." \
-        _       --latest \
-              --prerelease=false \
-              --draft=false \
-              ./dist/HEX_Flasher.exe
-            # FIX 3: No '\' at the end of the last command in the block
-    _   )
+        env:
+          # The GITHUB_TOKEN is automatically provided by Actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash  # <-- FIX 1: Explicitly use bash shell for '||' logic
+        run: |
+          # Try to create the release.
+          # All flags are continued with '\' to make one long command
+          gh release create latest \
+            --title "Latest Windows Build (main)" \
+            --notes "Automatic build from the main branch." \
+            --latest \
+            --prerelease=false \
+            --draft=false \
+            ./dist/HEX_Flasher.exe \
+          || \
+          (
+            echo "Release 'latest' already exists. Re-creating..." ;
+            # Delete the existing release
+            gh release delete latest -y ;
+            echo "Old release deleted. Re-creating..." ;
+            # Re-create the release
+            gh release create latest \
+              --title "Latest Windows Build (main)" \
+              --notes "Automatic build from the main branch." \
+              --latest \
+              --prerelease=false \
+              --draft=false \
+              ./dist/HEX_Flasher.exe
+          )
