@@ -13,11 +13,10 @@ import glob
 import serial
 import os.path
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFileDialog, QComboBox
 from PyQt5.QtGui import QIcon
 
 #Below definitions
-node_ID_string = '#define NODE_ID'
 program_path = '/'
 
 def get_cli_path():
@@ -52,7 +51,6 @@ compiler = get_cli_path()
 
 flag1_compile = 'compile'
 flag2_boardname1 = '-b'
-flag3_boardname2 = 'arduino:avr:uno'
 flag5_verbose = '-v'
 
 flag1_upload = 'upload'
@@ -128,14 +126,33 @@ class Ui_MainWindow(QWidget):
         self.verticalLayout.addWidget(self.label_fileChosen)
         spacerItem1 = QtWidgets.QSpacerItem(20, 80, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
-        self.label_3 = QtWidgets.QLabel(self.centralwidget)
-        self.label_3.setObjectName("label_3")
-        self.verticalLayout.addWidget(self.label_3)
-        self.spinBox_ID = QtWidgets.QSpinBox(self.centralwidget)
-        self.spinBox_ID.setMinimum(1)
-        self.spinBox_ID.setMaximum(999)
-        self.spinBox_ID.setObjectName("spinBox_ID")
-        self.verticalLayout.addWidget(self.spinBox_ID)
+        
+        # --- REMOVED TARGET ID WIDGETS ---
+        
+        # --- ADDED FQDN WIDGETS (COMBO BOX) ---
+        self.label_FQDN = QtWidgets.QLabel(self.centralwidget)
+        self.label_FQDN.setObjectName("label_FQDN")
+        self.verticalLayout.addWidget(self.label_FQDN)
+        
+        # CHANGED: QLineEdit -> QComboBox
+        self.comboBox_FQDN = QtWidgets.QComboBox(self.centralwidget)
+        self.comboBox_FQDN.setObjectName("comboBox_FQDN")
+        self.comboBox_FQDN.setEditable(True) # User can type their own
+        
+        # Add Standard Boards
+        self.comboBox_FQDN.addItem("arduino:avr:uno")
+        self.comboBox_FQDN.addItem("arduino:avr:nano")
+        self.comboBox_FQDN.addItem("arduino:avr:mega")
+        self.comboBox_FQDN.addItem("arduino:avr:leonardo")
+        self.comboBox_FQDN.addItem("arduino:avr:micro")
+        self.comboBox_FQDN.addItem("arduino:avr:yun")
+        
+        # Default to Uno
+        self.comboBox_FQDN.setCurrentIndex(0) 
+        
+        self.verticalLayout.addWidget(self.comboBox_FQDN)
+        # --- END OF ADDED WIDGETS ---
+        
         spacerItem2 = QtWidgets.QSpacerItem(20, 80, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem2)
         self.label = QtWidgets.QLabel(self.centralwidget)
@@ -187,16 +204,7 @@ class Ui_MainWindow(QWidget):
         self.label_4.setFont(font)
         self.label_4.setObjectName("label_4")
 
-        self.spinBox_ID.valueChanged.connect(self.valueIDchange)
-
-        #Check file, then define ID 1 when program starts
-        if os.path.isfile(program_path + '_ID.h'):
-            print ("File exist")
-            with open((program_path + '_ID.h'), "w") as file1:
-                file1.write(node_ID_string + ' ' + str(self.spinBox_ID.value()))
-                print("#define ID ", str(self.spinBox_ID.value()))
-        else:
-            print ("File not exist")
+        # Removed spinBox_ID valueChanged connect
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -214,7 +222,6 @@ class Ui_MainWindow(QWidget):
     #Browse button    
     def openFileNameDialog(self):
         print("Opening Window")
-        # CHANGED: Updated file filter to include .hex files
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Select Firmware File', QtCore.QDir.rootPath() , 'Firmware Files (*.ino *.hex);;All Files (*)') #works
         if fileName:
             print(fileName)
@@ -222,54 +229,6 @@ class Ui_MainWindow(QWidget):
             global program_path
             program_path = fileName
             print("Program path: ", program_path)
-
-
-    # If change ID, write ID in file
-    def valueIDchange(self):
-        # ADDED: Check if an .ino file is selected. ID writing only works for .ino projects.
-        if not program_path.endswith('.ino'):
-            print("ID writing skipped: Not an .ino file.")
-            self.textEdit.setText("ID writing is only supported for .ino files.")
-            return
-
-        print("current value:"+str(self.spinBox_ID.value()))   
-
-        print("Program path: ", program_path)
-        
-        #file = open(“/Firmware_V4/_ID.h”,”w”)
-        if program_path != '/':
-            print("Using selected path")
-            program_path_dir = "/".join(program_path.split("/")[:-1])
-            print("Program path dir: ", program_path_dir)
-            cwd = program_path_dir
-            
-
-        if program_path == '/':
-            print ("File not selected / not present. Will not write ID")
-            self.textEdit.setText("File not selected / not present. Will not write ID")
-            return
-        
-        # Check if cwd was defined
-        try:
-            files = os.listdir(cwd)  # Get all the files in that directory
-        except NameError:
-            print("Could not determine directory from program path.")
-            self.textEdit.setText("Could not determine directory from program path.")
-            return
-
-        print("Files in %r: %s" % (cwd, files))
-        #file1 = open('Arduino-Flasher-Project/Firmware_V4/_ID.h', 'w')
-
-        if os.path.isfile(program_path_dir + '/_ID.h'):
-            print ("File exist")
-            with open((program_path_dir + '/_ID.h'), "w") as file1:
-                file1.write(node_ID_string + ' ' + str(self.spinBox_ID.value()))
-                print("#define ID ", str(self.spinBox_ID.value()))
-                self.textEdit.setText("Wrote in file #define ID " + str(self.spinBox_ID.value()))
-        
-
-
-    
 
     # Refresh com ports when hit refresh
     def refreshComPortPressed(self):
@@ -316,8 +275,14 @@ class Ui_MainWindow(QWidget):
 
 
         if program_path == '/':
-            print("Select .ino file to flash first")
-            self.textEdit.setText("Select .ino file to flash first")
+            print("Select .ino or .hex file to flash first")
+            self.textEdit.setText("Select .ino or .hex file to flash first")
+            return
+            
+        # --- CHANGED: Get FQDN from ComboBox instead of LineEdit ---
+        board_fqdn = self.comboBox_FQDN.currentText()
+        if not board_fqdn:
+            self.textEdit.setText("Please select or enter a Board FQDN.")
             return
         
         # Prepare to hide console window on Windows
@@ -329,18 +294,15 @@ class Ui_MainWindow(QWidget):
             
         
         #compiling process
-        # Using 'compiler' variable which now holds the full path
         try:
-            # --- CHANGED: Added logic to check file type ---
             if program_path.endswith('.ino'):
                 # --- .INO FILE: Compile then Upload ---
                 self.textEdit.setText("Compiling .ino file...")
                 QApplication.processEvents() # Allow GUI to update
 
-                print(f"Running command: {[compiler, flag1_compile, flag2_boardname1, flag3_boardname2, program_path, flag5_verbose]}")
+                print(f"Running command: {[compiler, flag1_compile, flag2_boardname1, board_fqdn, program_path, flag5_verbose]}")
                 
-                # Using subprocess.run to capture output
-                compile_result = subprocess.run([compiler, flag1_compile, flag2_boardname1, flag3_boardname2, program_path, flag5_verbose], 
+                compile_result = subprocess.run([compiler, flag1_compile, flag2_boardname1, board_fqdn, program_path, flag5_verbose], 
                                                 capture_output=True, text=True, encoding='utf-8', startupinfo=startupinfo)
                 
                 self.textEdit.append("--- Compile Output ---")
@@ -355,9 +317,9 @@ class Ui_MainWindow(QWidget):
                 QApplication.processEvents() # Allow GUI to update
 
                 #flashign process
-                print(f"Running command: {[compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), program_path, flag5_verbose]}")
+                print(f"Running command: {[compiler, flag1_upload, flag2_boardname1, board_fqdn, flag2_portname1, self.comboBox_COMPORTS.currentText(), program_path, flag5_verbose]}")
                 
-                upload_result = subprocess.run([compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), program_path, flag5_verbose],
+                upload_result = subprocess.run([compiler, flag1_upload, flag2_boardname1, board_fqdn, flag2_portname1, self.comboBox_COMPORTS.currentText(), program_path, flag5_verbose],
                                                capture_output=True, text=True, encoding='utf-8', startupinfo=startupinfo)
 
                 self.textEdit.append("--- Upload Output ---")
@@ -374,9 +336,9 @@ class Ui_MainWindow(QWidget):
                 self.textEdit.setText("Uploading .hex file...")
                 QApplication.processEvents() # Allow GUI to update
 
-                print(f"Running command: {[compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), flag_input_file, program_path, flag5_verbose]}")
+                print(f"Running command: {[compiler, flag1_upload, flag2_boardname1, board_fqdn, flag2_portname1, self.comboBox_COMPORTS.currentText(), flag_input_file, program_path, flag5_verbose]}")
                 
-                upload_result = subprocess.run([compiler, flag1_upload, flag2_boardname1, flag3_boardname2, flag2_portname1, self.comboBox_COMPORTS.currentText(), flag_input_file, program_path, flag5_verbose],
+                upload_result = subprocess.run([compiler, flag1_upload, flag2_boardname1, board_fqdn, flag2_portname1, self.comboBox_COMPORTS.currentText(), flag_input_file, program_path, flag5_verbose],
                                                capture_output=True, text=True, encoding='utf-8', startupinfo=startupinfo)
 
                 self.textEdit.append("--- Upload Output ---")
@@ -401,29 +363,20 @@ class Ui_MainWindow(QWidget):
         self.pushButton_Flash.setText(_translate("MainWindow", "FLASH!"))
         self.label.setText(_translate("MainWindow", "COM port"))
         self.toolButton_selectFile.setText(_translate("MainWindow", "..."))
-        # CHANGED: Updated label text
         self.label_2.setText(_translate("MainWindow", "Select .ino or .hex file"))
-        self.label_3.setText(_translate("MainWindow", "Target ID (1-999)"))
+        
+        # REMOVED: label_3 setText (Target ID)
+
         self.label_4.setText(_translate("MainWindow", "ATMEGA328p ARDUINO COMPILER AND FLASHER"))
         self.label_5.setText(_translate("MainWindow", "Debug output:"))
-        # Removed installTool button text
         self.pushButton_RefreshCOM.setText(_translate("MainWindow", "Refresh COM ports"))
-
-    
+        
+        # --- UPDATED: Label for FQDN ---
+        self.label_FQDN.setText(_translate("MainWindow", "Board FQDN"))
 
     # test function
     def updateLabel(self, textToUpdate):
         self.textEdit.setText(textToUpdate)
-
-    #def pressed(self):
-    #    print("Browse button pressed")
-
-    
-
-    
-        
-
-
 
 if __name__ == "__main__":
     import sys
